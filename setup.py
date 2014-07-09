@@ -11,9 +11,9 @@ if sys.version_info < (3, 3):
 
 setup(
     name='flask-hookserver',
-    version='0.1',
+    version='0.1.1',
     url='https://github.com/nickfrostatx/flask-hookserver',
-    download_url='https://github.com/nickfrostatx/flask-hookserver/tarball/v0.1',
+    download_url='https://github.com/nickfrostatx/flask-hookserver/tarball/v0.1.1',
     author='Nick Frost',
     author_email='nickfrostatx@gmail.com',
     description='Server for GitHub webhooks using Flask',
