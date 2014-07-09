@@ -48,13 +48,9 @@ class HookServer(Flask):
                 signature = request.headers.get('X-Hub-Signature')
                 if not signature:
                     raise BadRequest('Missing HMAC signature')
-                try:
-                    checksum = signature.split('=', 1)[1]
-                except:
-                    raise BadRequest('Invalid HMAC signature')
                 payload = request.get_data()
                 digest = new(key, payload, sha1).hexdigest()
-                if digest != checksum:
+                if ('sha1=%s' % digest) != signature:
                     raise BadRequest('Wrong HMAC signature')
 
         @self.route('/hooks', methods=['POST'])
