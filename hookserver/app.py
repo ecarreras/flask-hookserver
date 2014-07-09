@@ -18,10 +18,6 @@ class HookServer(Flask):
         self.config['KEY'] = key
         self.hooks = {}
 
-        github_blocks = []
-        for block in get('https://api.github.com/meta').json()['hooks']:
-            github_blocks.append(ip_network(block))
-
         @self.errorhandler(400)
         @self.errorhandler(403)
         @self.errorhandler(404)
@@ -39,8 +35,8 @@ class HookServer(Flask):
         def validate_ip():
             if not self.debug:
                 ip = ip_address(request.remote_addr)
-                for block in github_blocks:
-                    if ip in block:
+                for block in get('https://api.github.com/meta').json()['hooks']:
+                    if ip in ip_network(block):
                         break
                 else:
                     raise Forbidden('Requests must originate from GitHub')
