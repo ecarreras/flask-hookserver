@@ -43,18 +43,19 @@ class HookServer(Flask):
 
         @self.before_request
         def validate_hmac():
-            key = self.config['KEY']
-            signature = request.headers.get('X-Hub-Signature')
-            if not signature:
-                raise BadRequest('Missing HMAC signature')
-            try:
-                checksum = signature.split('=', 1)[1]
-            except:
-                raise BadRequest('Invalid HMAC signature')
-            payload = request.get_data()
-            digest = new(key, payload, sha1).hexdigest()
-            if digest != checksum:
-                raise BadRequest('Wrong HMAC signature')
+            if not self.debug:
+                key = self.config['KEY']
+                signature = request.headers.get('X-Hub-Signature')
+                if not signature:
+                    raise BadRequest('Missing HMAC signature')
+                try:
+                    checksum = signature.split('=', 1)[1]
+                except:
+                    raise BadRequest('Invalid HMAC signature')
+                payload = request.get_data()
+                digest = new(key, payload, sha1).hexdigest()
+                if digest != checksum:
+                    raise BadRequest('Wrong HMAC signature')
 
         @self.route('/hooks', methods=['POST'])
         def hook():
