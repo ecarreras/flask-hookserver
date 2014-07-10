@@ -18,7 +18,7 @@ setup(
     author_email='nickfrostatx@gmail.com',
     description='Server for GitHub webhooks using Flask',
     license='MIT',
-    packages=['hookserver'],
+    py_modules=['hookserver'],
     install_requires=requirements,
     keywords = ['github', 'webhooks', 'flask'],
     classifiers = [
