@@ -34,7 +34,12 @@ class HookServer(Flask):
         @self.before_request
         def validate_ip():
             if not self.debug:
-                ip = ip_address(request.remote_addr)
+                # Python 2.x
+                if hasattr(str, 'decode'):
+                    ip = ip_address(request.remote_addr.decode('utf8'))
+                # Python 3.x
+                else:
+                    ip = ip_address(request.remote_addr)
                 for block in get('https://api.github.com/meta').json()['hooks']:
                     if ip in ip_network(block):
                         break
