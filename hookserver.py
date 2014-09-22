@@ -71,6 +71,10 @@ class HookServer(Flask):
                 raise BadRequest('No payload data')
             if event in self.hooks:
                 return self.hooks[event](data, guid)
+            # if no specific event is registered check if we have a wildcard
+            # registered
+            if '*' in self.hooks:
+                return self.hooks['*'](data, guid)
             else:
                 return 'Hook not used'
 
