@@ -5,10 +5,13 @@ from requests import get
 from hmac import new
 from hashlib import sha1
 from ipaddress import ip_address, ip_network
+from blinker import signal
+
 
 class HookServer(Flask):
 
-    def __init__(self, import_name, key, num_proxies=None):
+    def __init__(self, import_name, key=None, num_proxies=None,
+                 use_signals=False):
 
         Flask.__init__(self, import_name)
 
@@ -17,6 +20,7 @@ class HookServer(Flask):
 
         self.config['KEY'] = key
         self.hooks = {}
+        self.user_signals = use_signals
 
         @self.errorhandler(400)
         @self.errorhandler(403)
@@ -50,13 +54,15 @@ class HookServer(Flask):
         def validate_hmac():
             if not self.debug:
                 key = self.config['KEY']
-                signature = request.headers.get('X-Hub-Signature')
-                if not signature:
-                    raise BadRequest('Missing HMAC signature')
-                payload = request.get_data()
-                digest = new(key, payload, sha1).hexdigest()
-                if ('sha1=%s' % digest) != signature:
-                    raise BadRequest('Wrong HMAC signature')
+                if key:
+                    signature = request.headers.get('X-Hub-Signature')
+                    if not signature:
+                        raise BadRequest('Missing HMAC signature')
+                    else:
+                        payload = request.get_data()
+                        digest = new(key, payload, sha1).hexdigest()
+                        if ('sha1=%s' % digest) != signature:
+                            raise BadRequest('Wrong HMAC signature')
 
         @self.route('/hooks', methods=['POST'])
         def hook():
@@ -69,16 +75,30 @@ class HookServer(Flask):
             data = request.get_json()
             if not data:
                 raise BadRequest('No payload data')
-            if event in self.hooks:
-                return self.hooks[event](data, guid)
+            if self.user_signals:
+                # Check for wildcard signal
+                wildcard_signal = signal('*')
+                if wildcard_signal.receivers:
+                    wildcard_signal.send(data, guid=guid)
+                event_signal = signal(event)
+                if event_signal.receivers:
+                    res = event_signal.send(data, guid=guid)
+                return 'Hook delivered'
             else:
-                return 'Hook not used'
+                if event in self.hooks:
+                    return self.hooks[event](data, guid)
+                else:
+                    return 'Hook not used'
 
-    def hook(self, hook_name):
+    def hook(self, event):
         def _wrapper(fn):
-            if hook_name not in self.hooks:
-                self.hooks[hook_name] = fn
+            if self.user_signals:
+                event_signal = signal(event)
+                event_signal.connect(fn)
             else:
-                raise Exception('%s hook already registered' % hook_name)
+                if event not in self.hooks:
+                    self.hooks[event] = fn
+                else:
+                    raise Exception('%s hook already registered' % event)
             return fn
         return _wrapper
