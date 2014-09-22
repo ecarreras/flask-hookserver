@@ -20,7 +20,7 @@ class HookServer(Flask):
 
         self.config['KEY'] = key
         self.hooks = {}
-        self.user_signals = use_signals
+        self.use_signals = use_signals
 
         @self.errorhandler(400)
         @self.errorhandler(403)
@@ -76,13 +76,10 @@ class HookServer(Flask):
             if not data:
                 raise BadRequest('No payload data')
             if self.user_signals:
-                # Check for wildcard signal
-                wildcard_signal = signal('*')
-                if wildcard_signal.receivers:
-                    wildcard_signal.send(data, guid=guid)
-                event_signal = signal(event)
-                if event_signal.receivers:
-                    res = event_signal.send(data, guid=guid)
+                for event in ('*', event):
+                    event_signal = signal(event)
+                    if event_signal.receivers:
+                        event_signal.send(data, guid=guid, event=event)
                 return 'Hook delivered'
             else:
                 if event in self.hooks:
@@ -92,7 +89,7 @@ class HookServer(Flask):
 
     def hook(self, event):
         def _wrapper(fn):
-            if self.user_signals:
+            if self.use_signals:
                 event_signal = signal(event)
                 event_signal.connect(fn)
             else:
